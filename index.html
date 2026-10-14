@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Trick Park — animaciones v3</title>
+<title>Trick Park — prototipo v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,700&display=swap" rel="stylesheet">
 <style>
 :root{--glass:rgba(16,22,30,.55);--ink:#f4f7fa;--ring:rgba(255,255,255,.14);--line:rgba(255,255,255,.4);color-scheme:dark}
@@ -110,7 +110,7 @@ function blk(x,z,hw,hd,t,mat){add(new THREE.BoxGeometry(hw*2,t,hd*2),mat,x,t/2,z
 function rail(x,y,z,len,rot,mat){const m=add(new THREE.CylinderGeometry(.05,.05,len,6),mat,x,y,z);if(rot==='x')m.rotation.z=Math.PI/2;else if(rot==='z')m.rotation.x=Math.PI/2;boxes.push(rot==='x'?{x,z,hw:len/2,hd:.08,top:y+.06,bot:y-.06}:rot==='z'?{x,z,hw:.08,hd:len/2,top:y+.06,bot:y-.06}:{x,z,hw:.08,hd:.08,top:y+len/2,bot:y-len/2});return m;}
 function frame(x,z,w,d,h,m){for(const sx of[-1,1])for(const sz of[-1,1])rail(x+sx*w/2,h/2,z+sz*d/2,h,'y',m);for(const sz of[-1,1])rail(x,h,z+sz*d/2,w,'x',m);for(const sx of[-1,1])rail(x+sx*w/2,h,z,d,'z',m);rail(x,h*.55,z,w,'x',m);}
 const tatamiT=tex(256,256,(x,w,h)=>{x.fillStyle='#e07a92';x.fillRect(0,0,w,h);x.strokeStyle='#fff';x.lineWidth=10;x.strokeRect(8,8,w-16,h-16);x.strokeStyle='rgba(70,20,40,.25)';x.lineWidth=8;x.beginPath();x.moveTo(0,h*.25);x.lineTo(w,h*.05);x.moveTo(0,h*.9);x.lineTo(w,h*.6);x.stroke();});
-function tatami(x,z){const t=.35;add(new THREE.BoxGeometry(5.4,t,5.4),lam(0xd4687f),x,t/2,z);const pl=add(new THREE.PlaneGeometry(5.1,5.1),new THREE.MeshLambertMaterial({map:tatamiT}),x,t+.01,z);pl.rotation.x=-Math.PI/2;boxes.push({x,z,hw:2.7,hd:2.7,top:t,bounce:true});}
+function tatami(x,z){const t=.35;/* Tatami XL: superficie ampliada para facilitar la recepción */add(new THREE.BoxGeometry(10.8,t,10.8),lam(0xd4687f),x,t/2,z);const pl=add(new THREE.PlaneGeometry(10.45,10.45),new THREE.MeshLambertMaterial({map:tatamiT}),x,t+.01,z);pl.rotation.x=-Math.PI/2;boxes.push({x,z,hw:5.4,hd:5.4,top:t,bounce:true});}
 function bouncyAt(px,pz,fp){for(const b of boxes)if(b.bounce&&Math.abs(px-b.x)<b.hw+R&&Math.abs(pz-b.z)<b.hd+R&&fp>=b.top-.3)return true;return false;}
 const hx=c=>'#'+c.toString(16).padStart(6,'0');
 function conTex(M){return tex(128,128,(x,w,h)=>{x.fillStyle=hx(M.wall);x.fillRect(0,0,w,h);
@@ -289,19 +289,10 @@ function step(dt){
   for(const b of boxes){if(pos.y-HALF<b.top-.3&&pos.y+HALF>(b.bot||0)){const ox=b.hw+R-Math.abs(pos.x-b.x),oz=b.hd+R-Math.abs(pos.z-b.z);if(ox>0&&oz>0){if(ox<oz){pos.x+=Math.sign(pos.x-b.x)*ox;vel.x=0;}else{pos.z+=Math.sign(pos.z-b.z)*oz;vel.z=0;}}}}
   pos.x=Math.max(-19.5,Math.min(19.5,pos.x));pos.z=Math.max(-22,Math.min(34,pos.z));
   const fl=floorAt(pos.x,pos.z,feetPrev);
-  if(pos.y-HALF<=fl&&vel.y<=0){pos.y=fl+HALF;if(-vel.y>2.5&&bouncyAt(pos.x,pos.z,feetPrev)){vel.y=Math.min(-vel.y*.72,11);grounded=false;}else{vel.y=0;grounded=true;}}else grounded=false;
+  if(pos.y-HALF<=fl&&vel.y<=0){pos.y=fl+HALF;const impact=-vel.y;if(bouncyAt(pos.x,pos.z,feetPrev)&&impact>1.8){/* rebote más constante y controlable en el tatami */vel.y=Math.min(impact*.82+1.0,12.5);grounded=false;landT=.18;}else{vel.y=0;grounded=true;}}else grounded=false;
   if(grounded&&!was&&trick&&!trick.ground)finish(prog()>=.8);
   if(trick){trick.t+=dt;for(let i=0;i<3;i++)if(trick.tg[i]){const n=trick.a[i]+trick.rate[i]*dt;trick.a[i]=Math.abs(n)>Math.abs(trick.tg[i])?trick.tg[i]:n;}
-    // Rotación visual suavizada: acelera al iniciar el truco y frena al abrir para aterrizar.
-    // Conservamos trick.a sin modificar para no alterar la lógica de puntuación/aterrizaje.
-    const easedRot=trick.a.map((angle,i)=>{
-      const target=trick.tg[i];
-      if(!target)return 0;
-      const raw=Math.min(1,Math.abs(angle/target));
-      const eased=raw*raw*(3-2*raw); // smoothstep
-      return Math.sign(target)*Math.abs(target)*eased;
-    });
-    rig.rotation.set(easedRot[0]+trick.lean,easedRot[1],easedRot[2]);
+    rig.rotation.set(trick.a[0]+trick.lean,trick.a[1],trick.a[2]);
     if(trick.ground&&trick.t>=trick.dur){if(trick.then){const th=trick.then,sw=trick.sw;trick=null;vel.y=9.5;grounded=false;startTrick(th.n,th.tg,th.d,th.b||0,th);trick.sw=sw;}else finish(true);}}
   else{leanQ.setFromEuler(new THREE.Euler(grounded?.2*Math.min(Math.hypot(vel.x,vel.z)/9,1):0,0,0));rig.quaternion.slerp(stun>0?lieQ:leanQ,1-Math.exp(-(stun>0?14:12)*dt));}
   {const cr=prepT>0?-.2:(!trick&&grounded&&landT>0)?-.35:0,bob=(grounded&&!trick&&stun<=0)?Math.abs(Math.sin(clock*11))*.07*Math.min(Math.hypot(vel.x,vel.z)/9,1):0;rig.position.y+=((stun>0?-.55:(trick?trick.low:cr+bob))-rig.position.y)*(1-Math.exp(-14*dt));}
