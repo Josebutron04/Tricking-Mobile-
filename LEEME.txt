@@ -1,0 +1,21 @@
+TRICK PARK — PAQUETE PARA PUBLICAR EN GITHUB PAGES
+
+CONTENIDO
+- index.html: el juego web.
+- .nojekyll: evita que GitHub Pages procese el contenido con Jekyll.
+
+PUBLICAR DESDE IPHONE
+1. Inicia sesión en https://github.com/ y crea un repositorio nuevo llamado trick-park.
+2. Ponlo en Public (GitHub Pages gratuito requiere repositorio público en cuentas Free).
+3. Dentro del repositorio, pulsa Add file > Upload files.
+4. Descomprime este ZIP primero en la app Archivos y sube index.html y .nojekyll desde la carpeta trick-park-pages. No subas el ZIP en sí.
+5. Pulsa Commit changes.
+6. Abre Settings > Pages.
+7. En Build and deployment, elige Deploy from a branch.
+8. Selecciona Branch: main y Folder: /(root), y pulsa Save.
+9. Espera a que termine el despliegue. En Settings > Pages aparecerá el enlace de la web, normalmente https://TU-USUARIO.github.io/trick-park/.
+
+NOTAS
+- La web publicada será accesible públicamente en internet. No subas datos privados.
+- El juego necesita conexión a internet para descargar Three.js desde un CDN.
+- No puedo crear ni publicar el repositorio dentro de tu cuenta sin que tú inicies sesión y hagas la acción de subida.
