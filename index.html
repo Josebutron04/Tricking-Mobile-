@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Trick Park — prototipo v2</title>
+<title>Trick Park — animaciones v3</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,700&display=swap" rel="stylesheet">
 <style>
 :root{--glass:rgba(16,22,30,.55);--ink:#f4f7fa;--ring:rgba(255,255,255,.14);--line:rgba(255,255,255,.4);color-scheme:dark}
@@ -292,7 +292,16 @@ function step(dt){
   if(pos.y-HALF<=fl&&vel.y<=0){pos.y=fl+HALF;if(-vel.y>2.5&&bouncyAt(pos.x,pos.z,feetPrev)){vel.y=Math.min(-vel.y*.72,11);grounded=false;}else{vel.y=0;grounded=true;}}else grounded=false;
   if(grounded&&!was&&trick&&!trick.ground)finish(prog()>=.8);
   if(trick){trick.t+=dt;for(let i=0;i<3;i++)if(trick.tg[i]){const n=trick.a[i]+trick.rate[i]*dt;trick.a[i]=Math.abs(n)>Math.abs(trick.tg[i])?trick.tg[i]:n;}
-    rig.rotation.set(trick.a[0]+trick.lean,trick.a[1],trick.a[2]);
+    // Rotación visual suavizada: acelera al iniciar el truco y frena al abrir para aterrizar.
+    // Conservamos trick.a sin modificar para no alterar la lógica de puntuación/aterrizaje.
+    const easedRot=trick.a.map((angle,i)=>{
+      const target=trick.tg[i];
+      if(!target)return 0;
+      const raw=Math.min(1,Math.abs(angle/target));
+      const eased=raw*raw*(3-2*raw); // smoothstep
+      return Math.sign(target)*Math.abs(target)*eased;
+    });
+    rig.rotation.set(easedRot[0]+trick.lean,easedRot[1],easedRot[2]);
     if(trick.ground&&trick.t>=trick.dur){if(trick.then){const th=trick.then,sw=trick.sw;trick=null;vel.y=9.5;grounded=false;startTrick(th.n,th.tg,th.d,th.b||0,th);trick.sw=sw;}else finish(true);}}
   else{leanQ.setFromEuler(new THREE.Euler(grounded?.2*Math.min(Math.hypot(vel.x,vel.z)/9,1):0,0,0));rig.quaternion.slerp(stun>0?lieQ:leanQ,1-Math.exp(-(stun>0?14:12)*dt));}
   {const cr=prepT>0?-.2:(!trick&&grounded&&landT>0)?-.35:0,bob=(grounded&&!trick&&stun<=0)?Math.abs(Math.sin(clock*11))*.07*Math.min(Math.hypot(vel.x,vel.z)/9,1):0;rig.position.y+=((stun>0?-.55:(trick?trick.low:cr+bob))-rig.position.y)*(1-Math.exp(-14*dt));}
